@@ -28,17 +28,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     try {
         // Insertion du dossier dans la base de données
-        $sql = "INSERT INTO dossiers (nom, description, ajoute_par, date_creation) 
-                VALUES (:nom, :description, :ajoutePar, :dateCreation)";
+        $sql = "INSERT INTO dossiers (name, description, created_by, creation_date) 
+                VALUES (:name, :description, :created_by, :creation_date)";
         $stmt = $pdo->prepare($sql);
-        $stmt->bindParam(':nom', $nomDossier);
+        $stmt->bindParam(':name', $nomDossier);
         $stmt->bindParam(':description', $description);
-        $stmt->bindParam(':ajoutePar', $ajoutePar);
-        $stmt->bindParam(':dateCreation', $dateCreation);
+        $stmt->bindParam(':created_by', $ajoutePar);
+        $stmt->bindParam(':creation_date', $dateCreation);
         $stmt->execute();
 
         // Redirection après ajout réussi
-        header("Location: gestion_documents.php?success=ajout");
+        header("Location: GestionDocument.php?success=ajout");
         exit();
 
     } catch (PDOException $e) {
