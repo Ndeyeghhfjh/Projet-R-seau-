@@ -60,7 +60,7 @@
                                     </div>
 
                                     <div class="d-flex justify-content-between">
-                                        <button type="button" class="btn btn-secondary" onclick="window.location.href='index.html';">Retourner à l'accueil</button>
+                                        <button type="button" class="btn btn-secondary" onclick="window.location.href='GestionClient.php';">Retourner à l'accueil</button>
                                         <button type="submit" class="btn btn-primary">Créer Client</button>
                                     </div>
                                 </form>
