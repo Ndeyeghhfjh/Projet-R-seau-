@@ -165,9 +165,9 @@ $conn->close();
                       <td>" . htmlspecialchars($row['contact']) . "</td>
                       <td>" . htmlspecialchars($row['email']) . "</td>
                       <td>
-                        <button class='btn btn-sm btn-info'>Voir</button>
-                        <button class='btn btn-sm btn-warning'>Modifier</button>
-                        <button class='btn btn-sm btn-danger'>Supprimer</button>
+                        <a href='voir-client.php?id=" . $row['idclient'] . "' class='btn btn-sm btn-info'>Voir</a>
+                        <a href='modifier-client.php?id=" . $row['idclient'] . "' class='btn btn-sm btn-warning'>Modifier</a>
+                        <a href='supprimer-client.php?id=" . $row['idclient'] . "' class='btn btn-sm btn-danger' onclick='return confirm(\"Voulez-vous vraiment supprimer ce client ?\");'>Supprimer</a>
                       </td>
                     </tr>";
             }

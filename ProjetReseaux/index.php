@@ -1,4 +1,6 @@
 <?php
+session_start(); // Démarre la session pour vérifier si l'utilisateur est connecté
+
 // Connexion à la base de données
 $servername = "localhost";
 $username = "root"; // votre utilisateur de base de données
@@ -9,7 +11,7 @@ $conn = new mysqli($servername, $username, $password, $dbname);
 
 // Vérifiez la connexion
 if ($conn->connect_error) {
-  die("Connection failed: " . $conn->connect_error);
+    die("Connection failed: " . $conn->connect_error);
 }
 
 // Exécuter la requête pour obtenir le nombre d'employés
@@ -22,12 +24,9 @@ if ($result_employes) {
     
     // Récupérer le nombre d'employés
     $employes_count = $row_employes['count'];
-    
-    
 } else {
     echo "Erreur lors de la récupération du nombre d'employés : " . $conn->error;
 }
-
 
 // Récupérer le nombre de clients enregistrés
 $sql_clients = "SELECT COUNT(*) AS count FROM client";
@@ -43,6 +42,7 @@ $documents_count = $row_documents['count'];
 
 $conn->close();
 ?>
+
 <!DOCTYPE html>
 <html lang="fr">
   <head>
@@ -105,10 +105,19 @@ $conn->close();
             <div class="card-header">Gestion des Employés</div>
             <div class="card-body">
               <p>Ajoutez, modifiez et supprimez des informations sur les employés.</p>
-              <a href="GestionEmployes.php" class="btn btn-primary">Accéder</a>
+
+              <!-- Vérifier si l'utilisateur est connecté -->
+              <?php if (!isset($_SESSION['employe_id'])) { ?>
+                <!-- Si non connecté, afficher un lien vers la page de connexion -->
+                <a href="connexion.php" class="btn btn-primary">Se connecter pour accéder</a>
+              <?php } else { ?>
+                <!-- Si connecté, afficher le lien vers la gestion des employés -->
+                <a href="GestionDesEmployes/index.php" class="btn btn-primary">Accéder</a>
+              <?php } ?>
             </div>
           </div>
         </div>
+
         <div class="col-md-4">
           <div class="card">
             <div class="card-header">Gestion des Clients</div>
@@ -118,6 +127,7 @@ $conn->close();
             </div>
           </div>
         </div>
+
         <div class="col-md-4">
           <div class="card">
             <div class="card-header">Gestion des Documents</div>
@@ -154,4 +164,3 @@ $conn->close();
     <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
   </body>
 </html>
-
