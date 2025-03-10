@@ -1,46 +1,40 @@
 <?php
 // Connexion à la base de données
-$host = 'localhost'; // Adresse du serveur MySQL
-$dbname = 'smarttech'; // Nom de la base de données
-$username = 'root'; // Nom d'utilisateur MySQL
-$password = ''; // Mot de passe MySQL (vide si vous utilisez un environnement local)
+$host = 'localhost'; 
+$dbname = 'smarttech'; 
+$username = 'root'; 
+$password = ''; 
 
 try {
-    // Créer la connexion PDO
     $pdo = new PDO("mysql:host=$host;dbname=$dbname", $username, $password);
-    // Définir l'option d'erreur pour afficher les erreurs SQL
     $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 } catch (PDOException $e) {
-    // Si la connexion échoue, afficher une erreur
-    echo "Erreur de connexion à la base de données : " . $e->getMessage();
+    echo json_encode(["success" => false, "message" => "Erreur de connexion : " . $e->getMessage()]);
     exit();
 }
 
-// Récupérer les dossiers de la base de données
+// Récupérer les dossiers
 $query = "SELECT * FROM dossiers ORDER BY creation_date DESC";
 $stmt = $pdo->query($query);
 $dossiers = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-// Récupérer les documents associés à un dossier
-$documentsQuery = "SELECT * FROM document ORDER BY upload_date DESC";
+// Récupérer les documents
+$documentsQuery = "SELECT document.*, dossiers.name AS dossier_name
+                   FROM document 
+                   LEFT JOIN dossiers ON document.dossier_id = dossiers.id 
+                   ORDER BY upload_date DESC";
 $documentsStmt = $pdo->query($documentsQuery);
 $documents = $documentsStmt->fetchAll(PDO::FETCH_ASSOC);
 ?>
 
 <!DOCTYPE html>
 <html lang="fr">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Système de Gestion - Documents</title>
-    <link
-      href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css"
-      rel="stylesheet"
-    />
-    <link
-      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
-      rel="stylesheet"
-    />
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <style>
       :root {
         --primary-color: #0d6efd;
@@ -152,216 +146,175 @@ $documents = $documentsStmt->fetchAll(PDO::FETCH_ASSOC);
         border-color: var(--primary-color);
       }
     </style>
-  </head>
-  <body>
-    <nav class="navbar navbar-expand-lg navbar-dark">
-      <div class="container">
+</head>
+<body>
+
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+    <div class="container">
         <a class="navbar-brand" href="#">Système de Gestion</a>
-        <button
-          class="navbar-toggler"
-          type="button"
-          data-bs-toggle="collapse"
-          data-bs-target="#navbarNav"
-        >
-          <span class="navbar-toggler-icon"></span>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+            <span class="navbar-toggler-icon"></span>
         </button>
         <div class="collapse navbar-collapse" id="navbarNav">
-          <ul class="navbar-nav ms-auto">
-            <li class="nav-item">
-              <a class="nav-link" href="#">Accueil</a>
-            </li>
-            <li class="nav-item">
-              <a class="nav-link" href="#">Employés</a>
-            </li>
-            <li class="nav-item">
-              <a class="nav-link" href="#">Clients</a>
-            </li>
-            <li class="nav-item">
-              <a class="nav-link active" href="#">Documents</a>
-            </li>
-          </ul>
+            <ul class="navbar-nav ms-auto">
+                <li class="nav-item">
+                    <a class="nav-link" href="#">Accueil</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="#">Employés</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="#">Clients</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link active" href="#">Documents</a>
+                </li>
+            </ul>
         </div>
-      </div>
-    </nav>
+    </div>
+</nav>
 
-    <div class="page-header">
-      <div class="container">
+<div class="page-header">
+    <div class="container">
         <h1>Gestion des Documents</h1>
         <p>Organisez, stockez et retrouvez facilement vos documents</p>
-      </div>
     </div>
+</div>
 
-    <!-- Liste des dossiers -->
-    <div class="container mt-5">
-      <div class="row">
+<div class="container mt-4">
+    <div class="row">
+        <!-- Liste des dossiers -->
         <div class="col-md-3">
-          <div class="card">
-            <div class="card-header d-flex justify-content-between align-items-center">
-              <h5 class="mb-0">Dossiers</h5>
-              <button
-                class="btn btn-primary btn-sm"
-                data-bs-toggle="modal"
-                data-bs-target="#addFolderModal"
-              >
-                <i class="fas fa-folder-plus"></i> Ajouter un dossier
-              </button>
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Dossiers</h5>
+                    <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#addFolderModal">
+                        <i class="fas fa-folder-plus"></i> Ajouter
+                    </button>
+                </div>
+                <div class="card-body">
+                    <ul class="list-group folder-list">
+                        <?php foreach ($dossiers as $dossier): ?>
+                            <li class="list-group-item"><?= htmlspecialchars($dossier['name']); ?></li>
+                        <?php endforeach; ?>
+                    </ul>
+                </div>
             </div>
-            <div class="card-body">
-              <ul class="list-group folder-list">
-                <!-- Liste des dossiers sera ajoutée dynamiquement ici -->
-              </ul>
-            </div>
-          </div>
         </div>
 
-        <!-- Documents -->
+        <!-- Liste des documents -->
         <div class="col-md-9">
-          <div class="card">
-            <div class="card-header d-flex justify-content-between align-items-center">
-              <h5 class="mb-0">Documents</h5>
-              <button
-                class="btn btn-primary"
-                data-bs-toggle="modal"
-                data-bs-target="#uploadDocumentModal"
-              >
-                <i class="fas fa-upload me-1"></i> Téléverser
-              </button>
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Documents</h5>
+                      <a href="upload.php" class="btn btn-primary">
+                        <i class="fas fa-upload"></i> Téléverser
+                      </a>
+
+                </div>
+                <div class="card-body">
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>Nom</th>
+                                <th>Type</th>
+                                <th>Dossier</th>
+                                <th>Ajouté par</th>
+                                <th>Date</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                        <tbody>
+                          <?php if (!empty($documents)): ?>
+                              <?php foreach ($documents as $doc): ?>
+                                  <tr>
+                                      <td><?= htmlspecialchars($doc['nom'] ?? 'N/A') ?></td>
+                                      <td><?= htmlspecialchars($doc['typedoc'] ?? 'N/A') ?></td>
+                                      <td><?= htmlspecialchars($doc['dossier_id'] ?? 'N/A') ?></td>
+                                      <td><?= htmlspecialchars($doc['ajoute_par'] ?? 'N/A') ?></td>
+                                      <td><?= htmlspecialchars($doc['date_ajout'] ?? 'N/A') ?></td>
+                                      <td>
+                                      <td>
+                                        <a href="modifier.php?id=<?= urlencode($doc['iddoc'] ?? '') ?>" class="btn btn-warning btn-sm">Modifier</a>
+                                        <a href="telecharger.php?id=<?= urlencode($doc['iddoc'] ?? '') ?>" class="btn btn-success btn-sm">Télécharger</a>
+                                        <a href="supprimer.php?id=<?= urlencode($doc['iddoc'] ?? '') ?>" class="btn btn-danger btn-sm" onclick="return confirm('Êtes-vous sûr de vouloir supprimer ce document ?');">Supprimer</a>
+                                     </td>
+>
+                                      </td>
+                                  </tr>
+                              <?php endforeach; ?>
+                          <?php else: ?>
+                              <tr><td colspan="6">Aucun document trouvé.</td></tr>
+                          <?php endif; ?>
+
+                       </tbody>
+
+                    </table>
+                </div>
             </div>
-            <div class="card-body">
-              <div class="table-responsive">
-                <table class="table table-striped table-hover">
-                  <thead>
-                    <tr>
-                      <th>Nom</th>
-                      <th>Type</th>
-                      <th>Dossier</th>
-                      <th>Ajouté par</th>
-                      <th>Date d'ajout</th>
-                      <th>Taille</th>
-                      <th>Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <!-- Les documents seront ajoutés dynamiquement ici -->
-                  </tbody>
-                </table>
-              </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Ajout Dossier -->
+<div class="modal fade" id="addFolderModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Créer un dossier</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Modal pour ajouter un dossier -->
-    <div class="modal fade" id="addFolderModal" tabindex="-1" aria-labelledby="addFolderModalLabel" aria-hidden="true">
-      <div class="modal-dialog">
-        <div class="modal-content">
-          <div class="modal-header">
-            <h5 class="modal-title" id="addFolderModalLabel">Créer un nouveau dossier</h5>
-            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-          </div>
-          <div class="modal-body">
-            <form id="addFolderForm">
-              <div class="mb-3">
-                <label for="folderName" class="form-label">Nom du dossier</label>
-                <input type="text" class="form-control" id="folderName" required />
-              </div>
-              <div class="mb-3">
-                <label for="description" class="form-label">Description</label>
-                <textarea class="form-control" id="description" rows="3"></textarea>
-              </div>
-              <div class="mb-3">
-                <label for="createdBy" class="form-label">Créé par</label>
-                <input type="text" class="form-control" id="createdBy" required />
-              </div>
-              <div class="mb-3">
-                <label for="creationDate" class="form-label">Date de création</label>
-                <input type="date" class="form-control" id="creationDate" required />
-              </div>
-              <button type="submit" class="btn btn-primary w-100">Créer</button>
+            <div class="modal-body">
+            <form action="ajouter_dossier.php" method="POST">
+              <input type="text" name="folderName" placeholder="Nom du dossier" required>
+              <input type="text" name="description" placeholder="Description">
+              <input type="text" name="createdBy" placeholder="Créé par" required>
+              <button type="submit">Créer</button>
             </form>
-          </div>
+
+            </div>
         </div>
-      </div>
     </div>
+</div>
 
-    <!-- Modal pour téléverser un document -->
-    <div class="modal fade" id="uploadDocumentModal" tabindex="-1" aria-labelledby="uploadDocumentModalLabel" aria-hidden="true">
-      <div class="modal-dialog">
-        <div class="modal-content">
-          <div class="modal-header">
-            <h5 class="modal-title" id="uploadDocumentModalLabel">Téléverser un document</h5>
-            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-          </div>
-          <div class="modal-body">
-            <form id="uploadDocumentForm" enctype="multipart/form-data">
-              <div class="mb-3">
-                <label for="documentFile" class="form-label">Choisir un fichier</label>
-                <input type="file" class="form-control" id="documentFile" name="fileInput" required />
-              </div>
-              <div class="mb-3">
-                <label for="documentFolder" class="form-label">Dossier</label>
-                <select class="form-control" id="documentFolder" name="dossier_id" required>
-                  <option value="">Sélectionner un dossier</option>
-                  <!-- Les dossiers seront ajoutés dynamiquement ici -->
-                  <!-- Exemple de dossier -->
-                  <!-- <option value="1">Dossier 1</option> -->
-                </select>
-              </div>
-              <div class="mb-3">
-                <label for="addedBy" class="form-label">Ajouté par</label>
-                <input type="text" class="form-control" id="addedBy" name="addedBy" required />
-              </div>
-              <button type="submit" class="btn btn-primary w-100">Téléverser</button>
-            </form>
-          </div>
-        </div>
-      </div>
-    </div>
+<script>
+document.getElementById("addFolderForm").addEventListener("submit", function (event) {
+    event.preventDefault();
 
-    <script>
-      // Charger les dossiers dynamiquement
-      fetch("get_folders.php")
-        .then((response) => response.json())
-        .then((data) => {
-          const folderSelect = document.getElementById("documentFolder");
-          data.folders.forEach((folder) => {
-            const option = document.createElement("option");
-            option.value = folder.id;
-            option.textContent = folder.name;
-            folderSelect.appendChild(option);
-          });
-        })
-        .catch((error) => {
-          console.error("Erreur lors de la récupération des dossiers:", error);
-        });
+    let folderName = document.getElementById("folderName").value.trim();
+    if (folderName === "") {
+        alert("Le nom du dossier est requis.");
+        return;
+    }
 
-      // Gestion de l'upload de fichier
-      document.getElementById("uploadDocumentForm").addEventListener("submit", function (event) {
-        event.preventDefault(); // Empêcher la soumission classique du formulaire
+    fetch("add_folder.php", {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: "folderName=" + encodeURIComponent(folderName),
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Ajouter directement le dossier à la liste
+            let folderList = document.querySelector(".folder-list");
+            let newFolder = document.createElement("li");
+            newFolder.classList.add("list-group-item");
+            newFolder.textContent = folderName;
+            folderList.prepend(newFolder);
 
-        let formData = new FormData(this);
+            // Fermer le modal et réinitialiser le formulaire
+            document.getElementById("addFolderForm").reset();
+            let modal = bootstrap.Modal.getInstance(document.getElementById("addFolderModal"));
+            modal.hide();
+        } else {
+            alert("Erreur: " + data.message);
+        }
+    })
+    .catch(error => console.error("Erreur:", error));
+});
+</script>
 
-        fetch("upload.php", {
-          method: "POST",
-          body: formData,
-        })
-          .then((response) => response.json())
-          .then((data) => {
-            if (data.success) {
-              alert(data.message);
-              location.reload(); // Rafraîchir la page pour afficher les documents
-            } else {
-              alert(data.message);
-            }
-          })
-          .catch((error) => {
-            console.error("Erreur lors de l'upload:", error);
-            alert("Une erreur est survenue lors de l'upload.");
-          });
-      });
-    </script>
-
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
-  </body>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+</body>
 </html>
