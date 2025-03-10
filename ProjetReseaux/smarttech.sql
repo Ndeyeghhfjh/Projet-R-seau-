@@ -32,3 +32,5 @@ CREATE TABLE IF NOT EXISTS document (
     descriptiondoc TEXT
 );
 
+-- Table dossier
+

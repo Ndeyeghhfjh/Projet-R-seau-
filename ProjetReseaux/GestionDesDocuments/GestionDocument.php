@@ -1,3 +1,32 @@
+<?php
+// Connexion à la base de données
+$host = 'localhost'; // Adresse du serveur MySQL
+$dbname = 'smarttech'; // Nom de la base de données
+$username = 'root'; // Nom d'utilisateur MySQL
+$password = ''; // Mot de passe MySQL (vide si vous utilisez un environnement local)
+
+try {
+    // Créer la connexion PDO
+    $pdo = new PDO("mysql:host=$host;dbname=$dbname", $username, $password);
+    // Définir l'option d'erreur pour afficher les erreurs SQL
+    $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+} catch (PDOException $e) {
+    // Si la connexion échoue, afficher une erreur
+    echo "Erreur de connexion à la base de données : " . $e->getMessage();
+    exit();
+}
+
+// Récupérer les dossiers de la base de données
+$query = "SELECT * FROM dossiers ORDER BY creation_date DESC";
+$stmt = $pdo->query($query);
+$dossiers = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+// Récupérer les documents associés à un dossier
+$documentsQuery = "SELECT * FROM document ORDER BY upload_date DESC";
+$documentsStmt = $pdo->query($documentsQuery);
+$documents = $documentsStmt->fetchAll(PDO::FETCH_ASSOC);
+?>
+
 <!DOCTYPE html>
 <html lang="fr">
   <head>
@@ -162,40 +191,41 @@
       </div>
     </div>
 
-    <div class="container">
+    <!-- Liste des dossiers -->
+    <div class="container mt-5">
       <div class="row">
         <div class="col-md-3">
           <div class="card">
-            <div class="card-header">
+            <div class="card-header d-flex justify-content-between align-items-center">
               <h5 class="mb-0">Dossiers</h5>
-            </div>
-            <div class="card-footer">
               <button
-                class="btn btn-primary btn-sm w-100"
+                class="btn btn-primary btn-sm"
                 data-bs-toggle="modal"
                 data-bs-target="#addFolderModal"
               >
-                <i class="fas fa-folder-plus me-1"></i> Nouveau dossier
+                <i class="fas fa-folder-plus"></i> Ajouter un dossier
               </button>
+            </div>
+            <div class="card-body">
+              <ul class="list-group folder-list">
+                <!-- Liste des dossiers sera ajoutée dynamiquement ici -->
+              </ul>
             </div>
           </div>
         </div>
 
+        <!-- Documents -->
         <div class="col-md-9">
           <div class="card">
-            <div
-              class="card-header d-flex justify-content-between align-items-center"
-            >
+            <div class="card-header d-flex justify-content-between align-items-center">
               <h5 class="mb-0">Documents</h5>
-              <div>
-                <button
-                  class="btn btn-primary"
-                  data-bs-toggle="modal"
-                  data-bs-target="#uploadDocumentModal"
-                >
-                  <i class="fas fa-upload me-1"></i> Téléverser
-                </button>
-              </div>
+              <button
+                class="btn btn-primary"
+                data-bs-toggle="modal"
+                data-bs-target="#uploadDocumentModal"
+              >
+                <i class="fas fa-upload me-1"></i> Téléverser
+              </button>
             </div>
             <div class="card-body">
               <div class="table-responsive">
@@ -212,50 +242,7 @@
                     </tr>
                   </thead>
                   <tbody>
-                    <tr>
-                      <td>
-                        <i class="fas fa-file-pdf text-danger me-2"></i>
-                        Rapport_Annuel_2024.pdf
-                      </td>
-                      <td>PDF</td>
-                      <td>Rapports</td>
-                      <td>Jean Dupont</td>
-                      <td>15/01/2025</td>
-                      <td>2.4 MB</td>
-                      <td class="action-buttons">
-                        <button class="btn btn-sm btn-info">
-                          <i class="fas fa-eye"></i>
-                        </button>
-                        <button class="btn btn-sm btn-success">
-                          <i class="fas fa-download"></i>
-                        </button>
-                        <button class="btn btn-sm btn-danger">
-                          <i class="fas fa-trash"></i>
-                        </button>
-                      </td>
-                    </tr>
-                    <tr>
-                      <td>
-                        <i class="fas fa-file-word text-primary me-2"></i>
-                        Contrat_Client_TechSolutions.docx
-                      </td>
-                      <td>DOCX</td>
-                      <td>Contrats</td>
-                      <td>Sophie Martin</td>
-                      <td>20/02/2025</td>
-                      <td>567 KB</td>
-                      <td class="action-buttons">
-                        <button class="btn btn-sm btn-info">
-                          <i class="fas fa-eye"></i>
-                        </button>
-                        <button class="btn btn-sm btn-success">
-                          <i class="fas fa-download"></i>
-                        </button>
-                        <button class="btn btn-sm btn-danger">
-                          <i class="fas fa-trash"></i>
-                        </button>
-                      </td>
-                    </tr>
+                    <!-- Les documents seront ajoutés dynamiquement ici -->
                   </tbody>
                 </table>
               </div>
@@ -265,181 +252,116 @@
       </div>
     </div>
 
-    <div
-      class="modal fade"
-      id="addFolderModal"
-      tabindex="-1"
-      aria-hidden="true"
-    >
+    <!-- Modal pour ajouter un dossier -->
+    <div class="modal fade" id="addFolderModal" tabindex="-1" aria-labelledby="addFolderModalLabel" aria-hidden="true">
       <div class="modal-dialog">
         <div class="modal-content">
-          <div class="modal-header bg-primary text-white">
-            <h5 class="modal-title">Nouveau Dossier</h5>
-            <button
-              type="button"
-              class="btn-close btn-close-white"
-              data-bs-dismiss="modal"
-              aria-label="Close"
-            ></button>
+          <div class="modal-header">
+            <h5 class="modal-title" id="addFolderModalLabel">Créer un nouveau dossier</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
           </div>
           <div class="modal-body">
-            <form id="createFolderForm">
+            <form id="addFolderForm">
               <div class="mb-3">
                 <label for="folderName" class="form-label">Nom du dossier</label>
-                <input
-                  type="text"
-                  class="form-control"
-                  id="folderName"
-                  required
-                />
+                <input type="text" class="form-control" id="folderName" required />
               </div>
+              <div class="mb-3">
+                <label for="description" class="form-label">Description</label>
+                <textarea class="form-control" id="description" rows="3"></textarea>
+              </div>
+              <div class="mb-3">
+                <label for="createdBy" class="form-label">Créé par</label>
+                <input type="text" class="form-control" id="createdBy" required />
+              </div>
+              <div class="mb-3">
+                <label for="creationDate" class="form-label">Date de création</label>
+                <input type="date" class="form-control" id="creationDate" required />
+              </div>
+              <button type="submit" class="btn btn-primary w-100">Créer</button>
             </form>
-          </div>
-          <div class="modal-footer">
-            <button
-              type="button"
-              class="btn btn-secondary"
-              data-bs-dismiss="modal"
-            >
-              Annuler
-            </button>
-            <button type="submit" form="createFolderForm" class="btn btn-primary">
-              Créer
-            </button>
           </div>
         </div>
       </div>
     </div>
 
     <!-- Modal pour téléverser un document -->
-    <div
-      class="modal fade"
-      id="uploadDocumentModal"
-      tabindex="-1"
-      aria-hidden="true"
-    >
-      <div class="modal-dialog modal-lg">
+    <div class="modal fade" id="uploadDocumentModal" tabindex="-1" aria-labelledby="uploadDocumentModalLabel" aria-hidden="true">
+      <div class="modal-dialog">
         <div class="modal-content">
-          <div class="modal-header bg-primary text-white">
-            <h5 class="modal-title">Téléverser un document</h5>
-            <button
-              type="button"
-              class="btn-close btn-close-white"
-              data-bs-dismiss="modal"
-              aria-label="Close"
-            ></button>
+          <div class="modal-header">
+            <h5 class="modal-title" id="uploadDocumentModalLabel">Téléverser un document</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
           </div>
           <div class="modal-body">
-            <form id="uploadForm" enctype="multipart/form-data">
-              <div class="mb-4">
-                <div
-                  class="file-upload-container"
-                  onclick="document.getElementById('fileInput').click()"
-                >
-                  <input type="file" id="fileInput" class="d-none" multiple />
-                  <i
-                    class="fas fa-cloud-upload-alt fa-3x mb-3"
-                    style="color: var(--primary-color)"
-                  ></i>
-                  <h5>Glissez et déposez des fichiers ici</h5>
-                  <p class="text-muted mb-0">
-                    ou cliquez pour sélectionner des fichiers
-                  </p>
-                </div>
-              </div>
-
-              <div class="row mb-3">
-                <div class="col-md-6">
-                  <label for="documentName" class="form-label">Nom du document</label>
-                  <input type="text" class="form-control" id="documentName" />
-                </div>
-                <div class="col-md-6">
-                  <label for="documentFolder" class="form-label">Dossier</label>
-                  <select class="form-select" id="documentFolder">
-                    <option value="">Sélectionner un dossier</option>
-                    <option value="contrats">Contrats</option>
-                    <option value="factures">Factures</option>
-                    <option value="rh">Ressources humaines</option>
-                    <option value="marketing">Marketing</option>
-                    <option value="projets">Projets</option>
-                  </select>
-                </div>
-              </div>
-
+            <form id="uploadDocumentForm" enctype="multipart/form-data">
               <div class="mb-3">
-                <label for="documentDescription" class="form-label">Description</label>
-                <textarea
-                  class="form-control"
-                  id="documentDescription"
-                  rows="3"
-                ></textarea>
+                <label for="documentFile" class="form-label">Choisir un fichier</label>
+                <input type="file" class="form-control" id="documentFile" name="fileInput" required />
               </div>
-
-              <div class="row">
-                <div class="col-md-6">
-                  <label for="documentTags" class="form-label">Tags (séparés par des virgules)</label>
-                  <input
-                    type="text"
-                    class="form-control"
-                    id="documentTags"
-                    placeholder="rapport, annuel, finance"
-                  />
-                </div>
-                <div class="col-md-6">
-                  <label for="documentAccess" class="form-label">Niveau d'accès</label>
-                  <select class="form-select" id="documentAccess">
-                    <option value="public">Public (tous les utilisateurs)</option>
-                    <option value="restricted">Restreint (certains utilisateurs)</option>
-                    <option value="private">Privé (moi uniquement)</option>
-                  </select>
-                </div>
+              <div class="mb-3">
+                <label for="documentFolder" class="form-label">Dossier</label>
+                <select class="form-control" id="documentFolder" name="dossier_id" required>
+                  <option value="">Sélectionner un dossier</option>
+                  <!-- Les dossiers seront ajoutés dynamiquement ici -->
+                  <!-- Exemple de dossier -->
+                  <!-- <option value="1">Dossier 1</option> -->
+                </select>
               </div>
+              <div class="mb-3">
+                <label for="addedBy" class="form-label">Ajouté par</label>
+                <input type="text" class="form-control" id="addedBy" name="addedBy" required />
+              </div>
+              <button type="submit" class="btn btn-primary w-100">Téléverser</button>
             </form>
-            <div id="fileDetails" class="mt-3"></div>
-          </div>
-          <div class="modal-footer">
-            <button
-              type="button"
-              class="btn btn-secondary"
-              data-bs-dismiss="modal"
-            >
-              Annuler
-            </button>
-            <button type="button" class="btn btn-primary" id="uploadBtn">
-              Téléverser
-            </button>
           </div>
         </div>
       </div>
     </div>
 
-    <footer class="footer">
-      <div class="container text-center">
-        <p>© 2025 Système de Gestion. Tous droits réservés.</p>
-      </div>
-    </footer>
-
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
     <script>
-      document.getElementById("fileInput").addEventListener("change", function(event) {
-        let file = event.target.files[0];
-        if (file) {
-          document.getElementById("fileDetails").innerHTML = ` 
-            <strong>Fichier sélectionné :</strong> ${file.name} <br/> 
-            <strong>Type :</strong> ${file.type} <br/> 
-            <strong>Taille :</strong> ${(file.size / 1024).toFixed(2)} KB
-          `;
-        }
-      });
+      // Charger les dossiers dynamiquement
+      fetch("get_folders.php")
+        .then((response) => response.json())
+        .then((data) => {
+          const folderSelect = document.getElementById("documentFolder");
+          data.folders.forEach((folder) => {
+            const option = document.createElement("option");
+            option.value = folder.id;
+            option.textContent = folder.name;
+            folderSelect.appendChild(option);
+          });
+        })
+        .catch((error) => {
+          console.error("Erreur lors de la récupération des dossiers:", error);
+        });
 
-      document.getElementById("uploadBtn").addEventListener("click", function() {
-        let fileInput = document.getElementById("fileInput");
-        if (fileInput.files.length > 0) {
-          document.getElementById("uploadForm").submit();
-        } else {
-          alert("Veuillez sélectionner un fichier avant de téléverser.");
-        }
+      // Gestion de l'upload de fichier
+      document.getElementById("uploadDocumentForm").addEventListener("submit", function (event) {
+        event.preventDefault(); // Empêcher la soumission classique du formulaire
+
+        let formData = new FormData(this);
+
+        fetch("upload.php", {
+          method: "POST",
+          body: formData,
+        })
+          .then((response) => response.json())
+          .then((data) => {
+            if (data.success) {
+              alert(data.message);
+              location.reload(); // Rafraîchir la page pour afficher les documents
+            } else {
+              alert(data.message);
+            }
+          })
+          .catch((error) => {
+            console.error("Erreur lors de l'upload:", error);
+            alert("Une erreur est survenue lors de l'upload.");
+          });
       });
     </script>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
   </body>
 </html>

@@ -1,65 +1,55 @@
 <?php
-// Vérifier si la méthode de la requête est POST
-if ($_SERVER['REQUEST_METHOD'] == 'POST') {
-    // Vérifier si un fichier a été téléchargé
-    if (isset($_FILES['fileInput'])) {
-        $file = $_FILES['fileInput'];
-        
-        // Vérifier les erreurs d'upload
-        if ($file['error'] !== UPLOAD_ERR_OK) {
-            echo "Erreur lors de l'upload.";
-            exit;
-        }
+$host = 'localhost';
+$dbname = 'smarttech'; // Nom de la base de données
+$username = 'root';
+$password = '';
 
-        // Définir le chemin où le fichier sera stocké
-        $uploadDir = 'uploads/';
-        $uploadPath = $uploadDir . basename($file['name']);
+try {
+    $pdo = new PDO("mysql:host=$host;dbname=$dbname", $username, $password);
+    $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 
-        // Vérifier si le fichier existe déjà
-        if (file_exists($uploadPath)) {
-            echo "Le fichier existe déjà.";
-            exit;
-        }
-
-        // Déplacer le fichier téléchargé dans le dossier spécifié
-        if (move_uploaded_file($file['tmp_name'], $uploadPath)) {
-            // Connexion à la base de données (ajoutez vos paramètres ici)
-            $servername = "localhost";
-            $username = "root";
-            $password = "";
-            $dbname = "gestion_documents"; // Assurez-vous que la base de données existe
-
-            // Créer une connexion
-            $conn = new mysqli($servername, $username, $password, $dbname);
-
-            // Vérifier la connexion
-            if ($conn->connect_error) {
-                die("Connection failed: " . $conn->connect_error);
-            }
-
-            // Obtenez les informations du fichier
-            $fileName = $file['name'];
-            $fileType = pathinfo($fileName, PATHINFO_EXTENSION);
+    if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+        // Vérification du fichier
+        if (isset($_FILES['fileInput']) && $_FILES['fileInput']['error'] == 0) {
+            $file = $_FILES['fileInput'];
+            $fileName = basename($file['name']);
+            $fileTmpPath = $file['tmp_name'];
             $fileSize = $file['size'];
-            $uploadDate = date("Y-m-d H:i:s");
+            $fileType = $file['type'];
 
-            // Préparer et exécuter la requête d'insertion dans la base de données
-            $sql = "INSERT INTO documents (file_name, file_type, file_size, upload_date) 
-                    VALUES ('$fileName', '$fileType', '$fileSize', '$uploadDate')";
+            // Définir le dossier d'upload
+            $uploadDir = 'uploads/';
+            $uploadFile = $uploadDir . $fileName;
 
-            if ($conn->query($sql) === TRUE) {
-                echo "Le fichier a été téléchargé et les informations ont été enregistrées dans la base de données.";
+            // Déplacer le fichier dans le dossier d'upload
+            if (move_uploaded_file($fileTmpPath, $uploadFile)) {
+                // Récupérer les données du formulaire
+                $dossierId = $_POST['dossier_id'];
+                $addedBy = $_POST['addedBy'];
+
+                // Insertion dans la base de données
+                $sql = "INSERT INTO document (name, type, dossier_id, added_by, size, file_path) VALUES (:name, :type, :dossierId, :addedBy, :size, :filePath)";
+                $stmt = $pdo->prepare($sql);
+                $stmt->bindParam(':name', $fileName);
+                $stmt->bindParam(':type', $fileType);
+                $stmt->bindParam(':dossierId', $dossierId);
+                $stmt->bindParam(':addedBy', $addedBy);
+                $stmt->bindParam(':size', $fileSize);
+                $stmt->bindParam(':filePath', $uploadFile);
+
+                if ($stmt->execute()) {
+                    echo json_encode(['success' => true, 'message' => 'Document téléchargé avec succès']);
+                } else {
+                    echo json_encode(['success' => false, 'message' => 'Erreur lors de l\'upload du document']);
+                }
             } else {
-                echo "Erreur d'insertion dans la base de données: " . $conn->error;
+                echo json_encode(['success' => false, 'message' => 'Erreur lors du déplacement du fichier']);
             }
-
-            // Fermer la connexion
-            $conn->close();
         } else {
-            echo "Une erreur s'est produite lors du téléchargement.";
+            echo json_encode(['success' => false, 'message' => 'Aucun fichier téléchargé']);
         }
-    } else {
-        echo "Aucun fichier n'a été téléchargé.";
     }
+} catch (PDOException $e) {
+    echo json_encode(['success' => false, 'message' => 'Erreur de connexion à la base de données: ' . $e->getMessage()]);
 }
 ?>
